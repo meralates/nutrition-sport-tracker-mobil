@@ -4,14 +4,14 @@ import { Ionicons } from "@expo/vector-icons";
 
 import HomeScreen from "@/screens/home/HomeScreen";
 import MealsScreen from "@/screens/meal/MealsScreen";
-import WorkoutsScreen from "@/screens/workout/WorkoutsScreen";
+import WorkoutsStack from "@/navigation/WorkoutsStack";
 import ProfileScreen from "@/screens/profile/ProfileScreen";
 import { colors } from "@/theme/color";
 
 export type AppTabParamList = {
   Home: undefined;
-  Meals: undefined;
-  Workouts: undefined;
+  Meals: { openAdd?: boolean } | undefined;
+  Workouts: { openAdd?: boolean } | undefined;
   Profile: undefined;
 };
 
@@ -47,7 +47,7 @@ export default function AppTabs() {
     >
       <Tab.Screen name="Home" component={HomeScreen} />
       <Tab.Screen name="Meals" component={MealsScreen} />
-      <Tab.Screen name="Workouts" component={WorkoutsScreen} />
+<Tab.Screen name="Workouts" component={WorkoutsStack} />
       <Tab.Screen name="Profile" component={ProfileScreen} />
     </Tab.Navigator>
   );

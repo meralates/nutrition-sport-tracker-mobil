@@ -1,15 +1,14 @@
-import React from "react";
 import { NavigationContainer } from "@react-navigation/native";
-import { StatusBar } from "expo-status-bar";
-
 import RootNavigator from "@/navigation/RootNavigator";
+import { WorkoutProvider } from "@/context/WorkoutContext";
 import { navDarkTheme } from "@/theme/theme";
 
 export default function App() {
   return (
-    <NavigationContainer theme={navDarkTheme}>
-      <StatusBar style="light" />
-      <RootNavigator />
-    </NavigationContainer>
+    <WorkoutProvider>
+      <NavigationContainer theme={navDarkTheme}>
+        <RootNavigator />
+      </NavigationContainer>
+    </WorkoutProvider>
   );
 }
