@@ -1,10 +1,25 @@
-import React, { useState } from "react";
-import AuthStack from "@/navigation/AuthStack";
+import React from "react";
+import { NavigationContainer } from "@react-navigation/native";
+import { View, ActivityIndicator } from "react-native";
+
+import { useAuth } from "@/screens/auth/AuthContext";
 import AppTabs from "@/navigation/AppTabs";
+import AuthStack from "@/navigation/AuthStack";
 
-// Şimdilik fake auth: true yaparsan direkt tab'a girer
 export default function RootNavigator() {
-  const [isAuthed] = useState(true);
+  const { isBooting, isAuthed } = useAuth();
 
-  return isAuthed ? <AppTabs /> : <AuthStack />;
+  if (isBooting) {
+    return (
+      <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+        <ActivityIndicator />
+      </View>
+    );
+  }
+
+  return (
+    <NavigationContainer>
+      {isAuthed ? <AppTabs /> : <AuthStack />}
+    </NavigationContainer>
+  );
 }

@@ -1,4 +1,3 @@
-// src/screens/workout/WorkoutsScreen.tsx
 import React, { useMemo, useState } from "react";
 import { View, Text, StyleSheet, FlatList, Pressable, TextInput } from "react-native";
 import { Ionicons } from "@expo/vector-icons";

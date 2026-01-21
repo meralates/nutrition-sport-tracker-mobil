@@ -1,4 +1,3 @@
-// src/context/MealContext.tsx
 import React, { createContext, useContext, useMemo, useState } from "react";
 import { nanoid } from "nanoid/non-secure";
 
