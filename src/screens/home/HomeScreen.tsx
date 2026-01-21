@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, Pressable } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { colors } from "@/theme/color";
 import { useWorkouts } from "@/context/WorkoutContext";
+import { useMeals } from "@/context/MealContext";
 import AddWorkoutModal from "@/components/AddWorkoutModal";
 import AddMealModal from "@/components/AddMealModal";
 
@@ -17,13 +18,7 @@ function ProgressBar({ value, max }: { value: number; max: number }) {
   );
 }
 
-function Card({
-  title,
-  children,
-}: {
-  title: string;
-  children: React.ReactNode;
-}) {
+function Card({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <View style={styles.card}>
       <Text style={styles.cardTitle}>{title}</Text>
@@ -32,8 +27,29 @@ function Card({
   );
 }
 
+function StatMini({
+  icon,
+  label,
+  value,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  label: string;
+  value: string;
+}) {
+  return (
+    <View style={styles.miniStat}>
+      <Ionicons name={icon} size={14} color={colors.purple2} />
+      <View style={{ gap: 2 }}>
+        <Text style={styles.miniLabel}>{label}</Text>
+        <Text style={styles.miniValue}>{value}</Text>
+      </View>
+    </View>
+  );
+}
+
 export default function HomeScreen() {
   const { workouts, totalCaloriesToday, totalDurationToday } = useWorkouts();
+  const { meals, totalMealCaloriesToday } = useMeals();
 
   const [workoutModalOpen, setWorkoutModalOpen] = useState(false);
   const [mealModalOpen, setMealModalOpen] = useState(false);
@@ -42,9 +58,18 @@ export default function HomeScreen() {
   const todayISO = useMemo(() => new Date().toISOString(), []);
 
   const todayLatestWorkout = useMemo(() => {
-    const todays = workouts.filter((w) => w.date.startsWith(todayKey));
-    return todays[0]; // addWorkout başa ekliyor
+    return workouts.find((w) => w.date.startsWith(todayKey));
   }, [workouts, todayKey]);
+
+  const todayLatestMeal = useMemo(() => {
+    return meals.find((m) => m.date.startsWith(todayKey));
+  }, [meals, todayKey]);
+
+  const eaten = totalMealCaloriesToday; // meal toplamı
+  const burned = totalCaloriesToday; // workout yakılan
+  const net = eaten - burned; // net kalori
+
+  const netLabel = net >= 0 ? `+${net}` : `${net}`;
 
   return (
     <View style={styles.container}>
@@ -53,75 +78,98 @@ export default function HomeScreen() {
 
       <View style={{ height: 12 }} />
 
+      {/* KALORİ */}
       <Card title="Günlük Kalori">
-        <Text style={styles.kcalText}>
-          <Text style={styles.kcalAccent}>{totalCaloriesToday}</Text> /{" "}
-          {DAILY_TARGET} kcal
-        </Text>
-        <ProgressBar value={totalCaloriesToday} max={DAILY_TARGET} />
-        <Text style={styles.mutedSmall}>
-          Bugün toplam {totalDurationToday} dk antrenman
-        </Text>
+        <View style={styles.kcalTopRow}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.kcalText}>
+              <Text style={styles.kcalAccent}>{eaten}</Text> / {DAILY_TARGET} kcal
+            </Text>
+            <Text style={styles.mutedSmall}>Net: <Text style={styles.netAccent}>{netLabel}</Text> kcal</Text>
+          </View>
+
+          <View style={styles.netPill}>
+            <Ionicons name="swap-vertical" size={14} color={colors.purple2} />
+            <Text style={styles.netPillText}>{netLabel}</Text>
+          </View>
+        </View>
+
+        <ProgressBar value={eaten} max={DAILY_TARGET} />
+
+        <View style={styles.miniRow}>
+          <StatMini icon="restaurant" label="Eaten" value={`${eaten} kcal`} />
+          <StatMini icon="flame" label="Burned" value={`${burned} kcal`} />
+          <StatMini icon="time" label="Workout" value={`${totalDurationToday} dk`} />
+        </View>
       </Card>
 
       <View style={{ height: 12 }} />
 
+      {/* WORKOUT */}
       <Card title="Bugünkü Workout">
         {todayLatestWorkout ? (
-          <View style={styles.workoutRow}>
+          <View style={styles.row}>
             <View style={{ flex: 1 }}>
-              <Text style={styles.workoutTitle}>
-                {todayLatestWorkout.title}
-              </Text>
-              <Text style={styles.workoutMeta}>
-                {todayLatestWorkout.durationMin} dk •{" "}
-                {todayLatestWorkout.burnedKcal} kcal
+              <Text style={styles.rowTitle}>{todayLatestWorkout.title}</Text>
+              <Text style={styles.rowMeta}>
+                {todayLatestWorkout.durationMin} dk • {todayLatestWorkout.burnedKcal} kcal
               </Text>
             </View>
 
             <View style={styles.pill}>
-              <Ionicons name="flame" size={14} color={colors.purple2} />
-              <Text style={styles.pillText}>
-                {todayLatestWorkout.burnedKcal}
-              </Text>
+              <Ionicons name="barbell" size={14} color={colors.purple2} />
+              <Text style={styles.pillText}>{todayLatestWorkout.burnedKcal}</Text>
             </View>
           </View>
         ) : (
-          <Text style={styles.mutedSmall}>Bugün workout yok. Ekleyebilirsin.</Text>
+          <Text style={styles.mutedSmall}>Bugün workout yok</Text>
+        )}
+      </Card>
+
+      <View style={{ height: 12 }} />
+
+      {/* MEAL */}
+      <Card title="Bugünkü Son Meal">
+        {todayLatestMeal ? (
+          <View style={styles.row}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.rowTitle}>{todayLatestMeal.title}</Text>
+              <Text style={styles.rowMeta}>{todayLatestMeal.caloriesKcal} kcal</Text>
+            </View>
+
+            <View style={styles.pill}>
+              <Ionicons name="restaurant" size={14} color={colors.purple2} />
+              <Text style={styles.pillText}>{todayLatestMeal.caloriesKcal}</Text>
+            </View>
+          </View>
+        ) : (
+          <Text style={styles.mutedSmall}>Bugün meal yok</Text>
         )}
       </Card>
 
       <View style={{ height: 14 }} />
 
+      {/* ACTIONS */}
       <View style={styles.actionsRow}>
         <Pressable style={styles.primaryBtn} onPress={() => setMealModalOpen(true)}>
           <Text style={styles.primaryBtnText}>+ Meal Ekle</Text>
         </Pressable>
 
-        <Pressable
-          style={styles.outlineBtn}
-          onPress={() => setWorkoutModalOpen(true)}
-        >
+        <Pressable style={styles.outlineBtn} onPress={() => setWorkoutModalOpen(true)}>
           <Text style={styles.outlineBtnText}>+ Workout Ekle</Text>
         </Pressable>
       </View>
 
-      {/* WORKOUT MODAL */}
       <AddWorkoutModal
         visible={workoutModalOpen}
         onClose={() => setWorkoutModalOpen(false)}
         defaultDateISO={todayISO}
       />
 
-      {/* MEAL MODAL */}
       <AddMealModal
         visible={mealModalOpen}
         onClose={() => setMealModalOpen(false)}
-        onSave={(meal) => {
-          // Sprint 1: sadece modal aç/kapat + UI akışı
-          // Sprint 2: MealContext ekleyip burada addMeal(meal) yapacağız
-          console.log("MEAL_SAVED", meal);
-        }}
+        defaultDateISO={todayISO}
       />
     </View>
   );
@@ -142,8 +190,23 @@ const styles = StyleSheet.create({
   },
   cardTitle: { color: colors.muted, fontSize: 13, fontWeight: "800" },
 
+  kcalTopRow: { flexDirection: "row", alignItems: "center", gap: 12 },
   kcalText: { color: colors.text, fontSize: 18, fontWeight: "900" },
   kcalAccent: { color: colors.purple2 },
+  netAccent: { color: colors.text, fontWeight: "900" },
+
+  netPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    backgroundColor: "rgba(255,255,255,0.04)",
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  netPillText: { color: colors.text, fontSize: 12, fontWeight: "900" },
 
   progressTrack: {
     height: 10,
@@ -155,16 +218,26 @@ const styles = StyleSheet.create({
   },
   progressFill: { height: "100%", backgroundColor: colors.purple2 },
 
+  miniRow: { flexDirection: "row", gap: 10, marginTop: 4, flexWrap: "wrap" },
+  miniStat: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 14,
+    backgroundColor: "rgba(255,255,255,0.03)",
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  miniLabel: { color: colors.muted, fontSize: 11, fontWeight: "800" },
+  miniValue: { color: colors.text, fontSize: 12, fontWeight: "900" },
+
   mutedSmall: { color: colors.muted, fontSize: 12, fontWeight: "700" },
 
-  workoutRow: { flexDirection: "row", alignItems: "center", gap: 10 },
-  workoutTitle: { color: colors.text, fontSize: 16, fontWeight: "900" },
-  workoutMeta: {
-    color: colors.muted,
-    fontSize: 12,
-    fontWeight: "700",
-    marginTop: 2,
-  },
+  row: { flexDirection: "row", alignItems: "center", gap: 10 },
+  rowTitle: { color: colors.text, fontSize: 16, fontWeight: "900" },
+  rowMeta: { color: colors.muted, fontSize: 12, fontWeight: "700" },
 
   pill: {
     flexDirection: "row",

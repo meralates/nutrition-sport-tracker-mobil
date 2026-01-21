@@ -1,145 +1,194 @@
 import React, { useMemo, useState } from "react";
-import { Modal, View, Text, StyleSheet, Pressable, TextInput, KeyboardAvoidingView, Platform } from "react-native";
+import {
+  Modal,
+  View,
+  Text,
+  StyleSheet,
+  Pressable,
+  TextInput,
+  KeyboardAvoidingView,
+  Platform,
+} from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { colors } from "@/theme/color";
+import { useMeals } from "@/context/MealContext";
 
 type Props = {
   visible: boolean;
   onClose: () => void;
-  onSave: (meal: { title: string; kcal: number; notes?: string }) => void;
+  defaultDateISO: string; // Home’dan geliyor
 };
 
-export default function AddMealModal({ visible, onClose, onSave }: Props) {
+export default function AddMealModal({ visible, onClose, defaultDateISO }: Props) {
+  const { addMeal } = useMeals();
+
   const [title, setTitle] = useState("");
-  const [kcal, setKcal] = useState("0");
+  const [kcal, setKcal] = useState("");
   const [notes, setNotes] = useState("");
 
-  const kcalNum = useMemo(() => Number(kcal || 0), [kcal]);
-  const canSave = title.trim().length > 0 && kcalNum > 0;
+  const canSave = useMemo(() => {
+    const k = Number(kcal);
+    return title.trim().length > 0 && Number.isFinite(k) && k > 0;
+  }, [title, kcal]);
+
+  const reset = () => {
+    setTitle("");
+    setKcal("");
+    setNotes("");
+  };
+
+  const handleClose = () => {
+    reset();
+    onClose();
+  };
 
   const handleSave = () => {
     if (!canSave) return;
 
-    onSave({
+    addMeal({
       title: title.trim(),
-      kcal: kcalNum,
+      caloriesKcal: Number(kcal),
       notes: notes.trim() ? notes.trim() : undefined,
+      date: defaultDateISO,
     });
 
-    // reset
-    setTitle("");
-    setKcal("0");
-    setNotes("");
-    onClose();
+    handleClose();
   };
 
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <View style={styles.backdrop}>
-        <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={styles.kb}>
+    <Modal
+      visible={visible}
+      transparent
+      animationType="fade"
+      onRequestClose={handleClose}
+      statusBarTranslucent
+      presentationStyle="overFullScreen"
+    >
+      <KeyboardAvoidingView
+        style={styles.root}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+      >
+        {/* Overlay */}
+        <Pressable style={styles.overlay} onPress={handleClose} />
+
+        {/* Bottom sheet */}
+        <View style={styles.sheetWrap} pointerEvents="box-none">
           <View style={styles.sheet}>
-            <View style={styles.topRow}>
-              <View style={styles.topLeft}>
+            <View style={styles.headerRow}>
+              <View style={styles.headerLeft}>
                 <View style={styles.iconBubble}>
-                  <Ionicons name="restaurant" size={18} color={colors.purple2} />
+                  <Ionicons name="restaurant" size={16} color={colors.purple2} />
                 </View>
+
                 <View>
-                  <Text style={styles.h1}>Meal Ekle</Text>
-                  <Text style={styles.h2}>Bugüne yemek kaydı gir</Text>
+                  <Text style={styles.title}>Meal Ekle</Text>
+                  <Text style={styles.subtitle}>Bugüne yemek kaydı gir</Text>
                 </View>
               </View>
 
-              <Pressable style={styles.closeBtn} onPress={onClose}>
+              <Pressable onPress={handleClose} style={styles.closeBtn} hitSlop={8}>
                 <Ionicons name="close" size={18} color={colors.text} />
               </Pressable>
             </View>
 
-            <View style={styles.field}>
-              <Text style={styles.label}>Başlık</Text>
-              <TextInput
-                value={title}
-                onChangeText={setTitle}
-                placeholder="Örn: Tavuk + Pilav"
-                placeholderTextColor="rgba(255,255,255,0.35)"
-                style={styles.input}
-              />
-            </View>
+            <View style={{ height: 14 }} />
 
-            <View style={styles.row2}>
-              <View style={[styles.field, { flex: 1 }]}>
-                <Text style={styles.label}>Kalori (kcal)</Text>
-                <TextInput
-                  value={kcal}
-                  onChangeText={setKcal}
-                  keyboardType="number-pad"
-                  placeholder="650"
-                  placeholderTextColor="rgba(255,255,255,0.35)"
-                  style={styles.input}
-                />
-              </View>
-            </View>
+            <Text style={styles.label}>Başlık</Text>
+            <TextInput
+              value={title}
+              onChangeText={setTitle}
+              placeholder="Örn: Tavuk + Pilav"
+              placeholderTextColor="rgba(255,255,255,0.35)"
+              style={styles.input}
+              returnKeyType="next"
+              autoCorrect={false}
+            />
 
-            <View style={styles.field}>
-              <Text style={styles.label}>Not (opsiyonel)</Text>
-              <TextInput
-                value={notes}
-                onChangeText={setNotes}
-                placeholder="Örn: Akşam yemeği"
-                placeholderTextColor="rgba(255,255,255,0.35)"
-                style={[styles.input, { height: 90, textAlignVertical: "top", paddingTop: 12 }]}
-                multiline
-              />
-            </View>
+            <View style={{ height: 10 }} />
 
-            <View style={styles.actions}>
-              <Pressable style={styles.cancelBtn} onPress={onClose}>
-                <Text style={styles.cancelText}>Vazgeç</Text>
+            <Text style={styles.label}>Kalori (kcal)</Text>
+            <TextInput
+              value={kcal}
+              onChangeText={setKcal}
+              placeholder="Örn: 650"
+              placeholderTextColor="rgba(255,255,255,0.35)"
+              keyboardType={Platform.OS === "ios" ? "number-pad" : "numeric"}
+              style={styles.input}
+              returnKeyType="done"
+            />
+
+            <View style={{ height: 10 }} />
+
+            <Text style={styles.label}>Not (opsiyonel)</Text>
+            <TextInput
+              value={notes}
+              onChangeText={setNotes}
+              placeholder="Örn: Akşam yemeği"
+              placeholderTextColor="rgba(255,255,255,0.35)"
+              style={[styles.input, styles.textarea]}
+              multiline
+            />
+
+            <View style={{ height: 14 }} />
+
+            <View style={styles.actionsRow}>
+              <Pressable style={styles.outlineBtn} onPress={handleClose}>
+                <Text style={styles.outlineBtnText}>Vazgeç</Text>
               </Pressable>
 
               <Pressable
-                style={[styles.saveBtn, !canSave && { opacity: 0.5 }]}
+                style={[styles.primaryBtn, !canSave && styles.disabled]}
                 onPress={handleSave}
                 disabled={!canSave}
               >
-                <Ionicons name="checkmark" size={18} color="#0B0B10" />
-                <Text style={styles.saveText}>Kaydet</Text>
+                <Ionicons name="checkmark" size={16} color="#0B0B10" />
+                <Text style={styles.primaryBtnText}>Kaydet</Text>
               </Pressable>
             </View>
 
-            <Text style={styles.foot}>Başlık + kcal zorunlu (kcal &gt; 0).</Text>
+            <Text style={styles.hint}>Başlık + kcal zorunlu (kcal &gt; 0).</Text>
           </View>
-        </KeyboardAvoidingView>
-      </View>
+        </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
-  backdrop: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.55)",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 18,
+  root: { flex: 1 },
+
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0,0,0,0.58)",
   },
-  kb: { width: "100%", alignItems: "center", justifyContent: "center" },
+
+  sheetWrap: {
+    flex: 1,
+    justifyContent: "flex-end",
+    paddingHorizontal: 16,
+    paddingBottom: 16,
+  },
 
   sheet: {
     width: "100%",
-    maxWidth: 520,
     backgroundColor: colors.card,
     borderColor: colors.border,
     borderWidth: 1,
-    borderRadius: 20,
+    borderRadius: 22,
     padding: 16,
+  },
+
+  headerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     gap: 12,
   },
+  headerLeft: { flexDirection: "row", alignItems: "center", gap: 12 },
 
-  topRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  topLeft: { flexDirection: "row", alignItems: "center", gap: 10 },
   iconBubble: {
-    width: 38,
-    height: 38,
+    width: 36,
+    height: 36,
     borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
@@ -147,12 +196,13 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
   },
-  h1: { color: colors.text, fontSize: 18, fontWeight: "900" },
-  h2: { color: colors.muted, fontSize: 12, fontWeight: "700", marginTop: 2 },
+
+  title: { color: colors.text, fontSize: 18, fontWeight: "900" },
+  subtitle: { color: colors.muted, fontSize: 12, fontWeight: "700", marginTop: 2 },
 
   closeBtn: {
-    width: 38,
-    height: 38,
+    width: 36,
+    height: 36,
     borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
@@ -161,23 +211,28 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
   },
 
-  field: { gap: 8 },
-  label: { color: colors.muted, fontSize: 12, fontWeight: "800" },
+  label: { color: colors.muted, fontSize: 12, fontWeight: "800", marginBottom: 6 },
+
   input: {
+    width: "100%",
     backgroundColor: "rgba(255,255,255,0.03)",
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: 14,
-    paddingHorizontal: 14,
+    paddingHorizontal: 12,
     paddingVertical: 12,
     color: colors.text,
     fontWeight: "800",
   },
 
-  row2: { flexDirection: "row", gap: 10 },
+  textarea: {
+    minHeight: 86,
+    textAlignVertical: "top",
+  },
 
-  actions: { flexDirection: "row", gap: 12, marginTop: 6 },
-  cancelBtn: {
+  actionsRow: { flexDirection: "row", gap: 10, marginTop: 4 },
+
+  outlineBtn: {
     flex: 1,
     borderRadius: 14,
     paddingVertical: 12,
@@ -186,19 +241,26 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     backgroundColor: "rgba(255,255,255,0.02)",
   },
-  cancelText: { color: colors.text, fontWeight: "900" },
+  outlineBtnText: { color: colors.text, fontWeight: "900" },
 
-  saveBtn: {
+  primaryBtn: {
     flex: 1,
+    backgroundColor: colors.purple2,
     borderRadius: 14,
     paddingVertical: 12,
     alignItems: "center",
     justifyContent: "center",
     flexDirection: "row",
     gap: 8,
-    backgroundColor: colors.purple2,
   },
-  saveText: { color: "#0B0B10", fontWeight: "900" },
+  primaryBtnText: { color: "#0B0B10", fontWeight: "900" },
 
-  foot: { color: colors.muted, fontSize: 11, fontWeight: "700", opacity: 0.9 },
+  disabled: { opacity: 0.5 },
+
+  hint: {
+    marginTop: 10,
+    color: colors.muted,
+    fontSize: 11,
+    fontWeight: "700",
+  },
 });
